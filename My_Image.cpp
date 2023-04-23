@@ -119,6 +119,7 @@ int My_Image::Adaptive_Median_Filtering()
     return 0;
 }
 
+
 int My_Image::new_output_mem()
 {
     // 分配記憶體給 R G B
