@@ -1,9 +1,11 @@
 ﻿#include <iostream>
 #include <stdlib.h>
+#include <armadillo>
 #include "bmp.h"
 #include "My_Image.h"
 
 using namespace std;
+using namespace arma;
 
 int R[MaxBMPSizeX][MaxBMPSizeY];
 int r[MaxBMPSizeX][MaxBMPSizeY];

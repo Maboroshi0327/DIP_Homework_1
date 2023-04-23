@@ -29,6 +29,8 @@ public:
 
     int Adaptive_Median_Filtering();
 
+    int Perspective_Transformation();
+
 private:
     int new_output_mem();
     int delete_output_mem();
