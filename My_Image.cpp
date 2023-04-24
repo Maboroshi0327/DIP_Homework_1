@@ -181,6 +181,155 @@ void My_Image::Perspective_Transformation()
     }
 }
 
+int My_Image::Canny(int Gaussian_kernel_size, double sigma, int tH, int tL)
+{
+    if (Gaussian_kernel_size % 2 == 0)
+    {
+        cout << "Canny: Gaussian_kernel_size % 2 == 0" << endl;
+        return 1;
+    }
+
+    // 分配輸出圖片的記憶體
+    delete_output_mem();
+    width_output = width_origin;
+    height_output = height_origin;
+    new_output_mem();
+
+    // Color to Gray
+    vector<vector<double>> Gray(width_origin, vector<double>(height_origin, 0));
+    color_to_gray(Gray);
+
+    // Gaussian Filtering
+    vector<vector<double>> Gaussian_kernel(Gaussian_kernel_size, vector<double>(Gaussian_kernel_size, 0));
+    make_GF_kernel(Gaussian_kernel, Gaussian_kernel_size, sigma);
+    vector<vector<double>> GF_result(width_origin, vector<double>(height_origin, 0));
+    window_filtering(Gaussian_kernel, Gray, GF_result);
+
+    // Sobel
+    vector<vector<double>> Sobel_x(3, vector<double>(3, 0));
+    vector<vector<double>> Sobel_y(3, vector<double>(3, 0));
+    Sobel_x[0][0] = -1; Sobel_x[0][1] = 0; Sobel_x[0][2] = 1;
+    Sobel_x[1][0] = -2; Sobel_x[1][1] = 0; Sobel_x[1][2] = 2;
+    Sobel_x[2][0] = -1; Sobel_x[2][1] = 0; Sobel_x[2][2] = 1;
+    Sobel_y[0][0] = -1; Sobel_y[0][1] = -2; Sobel_y[0][2] = -1;
+    Sobel_y[1][0] =  0; Sobel_y[1][1] =  0; Sobel_y[1][2] =  0;
+    Sobel_y[2][0] =  1; Sobel_y[2][1] =  2; Sobel_y[2][2] =  1;
+    vector<vector<double>> gradient(width_origin, vector<double>(height_origin, 0));
+    vector<vector<int>> direction(width_origin, vector<int>(height_origin, 0));
+    for (int i = 1; i < width_origin - 1; i++)
+    {
+        for (int j = 1; j < height_origin - 1; j++)
+        {
+            double Gx{}, Gy{}, G, angle;
+            find_WF(Sobel_x, GF_result, i, j, Gx);
+            find_WF(Sobel_y, GF_result, i, j, Gy);
+            G = sqrt(Gx * Gx + Gy * Gy);
+            // if Gx == 0
+            if (abs(Gx) <= 1e-15)
+                angle = 90;
+            else
+                angle = atan(Gy / Gx) * 180 / 3.14159265;
+            angle = angle < 0 ? angle + 180 : angle;
+
+            gradient[i][j] = G;
+            if ((0 <= angle && angle < 22.5) || (157.5 <= angle))
+                direction[i][j] = 0;
+            else if (22.5 <= angle && angle < 67.5)
+                direction[i][j] = 1;
+            else if (67.5 <= angle && angle < 112.5)
+                direction[i][j] = 2;
+            else if (112.5 <= angle && angle < 157.5)
+                direction[i][j] = 3;
+        }
+    }
+
+    // Non-maximum suppression
+    for (int i = 1; i < width_origin - 1; i++)
+    {
+        for (int j = 1; j < height_origin - 1; j++)
+        {
+            switch (direction[i][j])
+            {
+            case 0:
+                if (gradient[i][j] < gradient[i][j - 1] || gradient[i][j] < gradient[i][j + 1])
+                    gradient[i][j] = 0;
+                break;
+
+            case 1:
+                if (gradient[i][j] < gradient[i - 1][j - 1] || gradient[i][j] < gradient[i + 1][j + 1])
+                    gradient[i][j] = 0;
+                break;
+
+            case 2:
+                if (gradient[i][j] < gradient[i - 1][j] || gradient[i][j] < gradient[i + 1][j])
+                    gradient[i][j] = 0;
+                break;
+
+            case 3:
+                if (gradient[i][j] < gradient[i - 1][j + 1] || gradient[i][j] < gradient[i + 1][j - 1])
+                    gradient[i][j] = 0;
+                break;
+            }
+        }
+    }
+
+    // Double Threshold
+    vector<vector<int>> output(width_origin, vector<int>(height_origin, 0));
+    for (int i = 1; i < width_origin - 1; i++)
+    {
+        for (int j = 1; j < height_origin - 1; j++)
+        {
+            if (gradient[i][j] < tL)
+            {
+                output[i][j] = 0;
+            }
+            else if (tL < gradient[i][j] && gradient[i][j] < tH)
+            {
+                output[i][j] = 1;
+            }
+            else
+            {
+                output[i][j] = 2;
+            }
+        }
+    }
+    for (int scan = 0; scan < 1; scan++)
+    {
+        for (int i = 1; i < width_origin - 1; i++)
+        {
+            for (int j = 1; j < height_origin - 1; j++)
+            {
+                if (output[i][j] == 1)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                        for (int dy = -1; dy <= 1; dy++)
+                            if (output[i + dx][j + dy] == 2)
+                            {
+                                output[i][j] = 2;
+                                dx = 2;
+                                dy = 2;
+                            }
+
+                }
+            }
+        }
+    }
+
+    // output
+    for (int i = 0; i < width_origin; i++)
+    {
+        for (int j = 0; j < height_origin; j++)
+        {
+            if (output[i][j] == 2)
+                R_output[i][j] = G_output[i][j] = B_output[i][j] = 255;
+            else
+                R_output[i][j] = G_output[i][j] = B_output[i][j] = 0;
+        }
+    }
+
+    return 0;
+}
+
 int My_Image::delete_origin_mem()
 {
     // 釋放 R G B 的記憶體
@@ -431,7 +580,6 @@ int My_Image::find_AMF_output(int x, int y, int output[3])
                 }
             }
         }
-
 #pragma endregion Stage A
     }
 
@@ -455,6 +603,151 @@ void My_Image::find_PT_xy(int u, int v, int& x, int& y)
     mat original_xy = H.i() * output_xy.t();
     x = (int)original_xy(0);
     y = (int)original_xy(1);
+}
+
+void My_Image::color_to_gray(vector<vector<double>>& input)
+{
+    for (int i = 0; i < width_origin; i++)
+    {
+        for (int j = 0; j < height_origin; j++)
+        {
+            input[i][j] = R_origin[i][j] * 0.299 + G_origin[i][j] * 0.587 + B_origin[i][j] * 0.114;
+        }
+    }
+}
+
+void My_Image::make_GF_kernel(vector<vector<double>>& Gaussian_kernel, int Gaussian_kernel_size, double sigma)
+{
+    double sum = 0;
+    int half_kernel_size = Gaussian_kernel_size / 2;
+    for (int i = -half_kernel_size; i <= half_kernel_size; i++)
+    {
+        for (int j = -half_kernel_size; j <= half_kernel_size; j++)
+        {
+            double power = -(i * i + j * j) / (2 * sigma * sigma);
+            Gaussian_kernel[i + half_kernel_size][j + half_kernel_size] = exp(power);
+            sum += Gaussian_kernel[i + half_kernel_size][j + half_kernel_size];
+        }
+    }
+    for (int i = 0; i < Gaussian_kernel_size; i++)
+    {
+        for (int j = 0; j < Gaussian_kernel_size; j++)
+        {
+            Gaussian_kernel[i][j] /= sum;
+        }
+    }
+}
+
+void My_Image::window_filtering(vector<vector<double>>& window, vector<vector<double>>& input, vector<vector<double>>& result)
+{
+    int width = (int)result.size();
+    int height = (int)result[0].size();
+    for (int i = 0; i < width; i++)
+    {
+        for (int j = 0; j < height; j++)
+        {
+            double value{};
+            find_WF(window, input, i, j, value);
+            result[i][j] = value;
+        }
+    }
+}
+
+void My_Image::window_filtering(vector<vector<double>>& window, vector<vector<vector<double>>>& result)
+{
+    int width = (int)result[0].size();
+    int height = (int)result[0][0].size();
+    for (int i = 0; i < width; i++)
+    {
+        for (int j = 0; j < height; j++)
+        {
+            double value[3];
+            find_WF(window, i, j, value);
+            result[0][i][j] = value[0];
+            result[1][i][j] = value[1];
+            result[2][i][j] = value[2];
+        }
+    }
+}
+
+void My_Image::find_WF(vector<vector<double>>& window, int x, int y, double value[3])
+{
+    int window_size = (int)window.size();
+    value[0] = value[1] = value[2] = 0;
+    for (int i = 0; i < window_size; i++)
+    {
+        for (int j = 0; j < window_size; j++)
+        {
+            int posision_x = x - (window_size / 2) + i;
+            int position_y = y - (window_size / 2) + j;
+            if (posision_x >= 0 && posision_x < width_origin && position_y >= 0 && position_y < height_origin)
+            {
+                value[0] += window[i][j] * R_origin[posision_x][position_y];
+                value[1] += window[i][j] * G_origin[posision_x][position_y];
+                value[2] += window[i][j] * B_origin[posision_x][position_y];
+            }
+            else
+            {
+                value[0] += window[i][j] * 0;
+                value[1] += window[i][j] * 0;
+                value[2] += window[i][j] * 0;
+            }
+        }
+    }
+}
+
+void My_Image::find_WF(vector<vector<double>>& window, vector<vector<double>>& input, int x, int y, double& value)
+{
+    int window_size = (int)window.size();
+    int width = (int)input.size();
+    int height = (int)input[0].size();
+    value = 0;
+    for (int i = 0; i < window_size; i++)
+    {
+        for (int j = 0; j < window_size; j++)
+        {
+            int posision_x = x - (window_size / 2) + i;
+            int position_y = y - (window_size / 2) + j;
+            if (posision_x >= 0 && posision_x < width && position_y >= 0 && position_y < height)
+            {
+                value += window[i][j] * input[posision_x][position_y];
+            }
+            else
+            {
+                value = input[x][y];
+                i = window_size;
+                j = window_size;
+            }
+        }
+    }
+}
+
+void My_Image::find_WF(vector<vector<double>>& window, vector<vector<vector<double>>>& input, int x, int y, double value[3])
+{
+    int window_size = (int)window.size();
+    int width = (int)input[0].size();
+    int height = (int)input[0][0].size();
+    value[0] = value[1] = value[2] = 0;
+    for (int i = 0; i < window_size; i++)
+    {
+        for (int j = 0; j < window_size; j++)
+        {
+            int posision_x = x - (window_size / 2) + i;
+            int position_y = y - (window_size / 2) + j;
+            if (posision_x >= 0 && posision_x < width && position_y >= 0 && position_y < height)
+            {
+                value[0] += window[i][j] * input[0][posision_x][position_y];
+                value[1] += window[i][j] * input[1][posision_x][position_y];
+                value[2] += window[i][j] * input[2][posision_x][position_y];
+            }
+            else
+            {
+                value[0] += window[i][j] * 0;
+                value[1] += window[i][j] * 0;
+                value[2] += window[i][j] * 0;
+            }
+        }
+    }
 }
 
 #endif /* MY_IMAGE_CPP */

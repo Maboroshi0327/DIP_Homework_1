@@ -41,6 +41,18 @@ int main(int argc, char* argv[])
     close_bmp();
 #pragma endregion Problem 2
 
+#pragma region Problem 3
+    open_bmp((char*)"test images\\lighthouse.bmp", R, G, B, width, height);
+
+    image.change_image(R, G, B, width, height);
+    image.Canny(3, 0.2, 150, 80);
+    image.To_array(r, g, b);
+
+    save_bmp((char*)"test images\\Problem_3.bmp", r, g, b);
+    cout << "Problem 3 Job Finished!" << endl;
+    close_bmp();
+#pragma endregion Problem 3
+
     system("PAUSE");
     return 0;
 }
