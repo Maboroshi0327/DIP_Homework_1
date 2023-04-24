@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <stdlib.h>
 #include <armadillo>
+#include <vector>
 #include "bmp.h"
 #include "My_Image.h"
 
@@ -19,13 +20,12 @@ int main(int argc, char* argv[])
     int width, height;
     open_bmp((char*)"test images\\lena_std.bmp", R, G, B, width, height);
 
-    My_Image image(R, R, R, width, height);
-    image.Adaptive_Median_Filtering();
+    My_Image image(R, G, B, width, height);
+    image.Perspective_Transformation();
     image.To_array(r, g, b);
 
     save_bmp((char*)"test images\\lena_new.bmp", r, g, b);
     cout << "Job Finished!" << endl;
-
     close_bmp();
 
     system("PAUSE");

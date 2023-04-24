@@ -5,8 +5,10 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <armadillo>
 
 using namespace std;
+using namespace arma;
 
 class My_Image
 {
@@ -29,7 +31,7 @@ public:
 
     int Adaptive_Median_Filtering();
 
-    int Perspective_Transformation();
+    void Perspective_Transformation();
 
 private:
     int new_output_mem();
@@ -38,6 +40,7 @@ private:
     int find_median(int x, int y, int window_size, int median[3], int max[3], int min[3]);
     int find_median_one_channel(int x, int y, int window_size, int channel, int& median, int& max, int& min);
     int find_AMF_output(int x, int y, int output[3]);
+    void find_PT_xy(int u, int v, int& x, int& y);
 };
 
 #include "My_Image.cpp"

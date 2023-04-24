@@ -26,9 +26,9 @@ My_Image::My_Image(type(&R)[x_size][y_size], type(&G)[x_size][y_size], type(&B)[
     {
         for (int j = 0; j < height_origin; j++)
         {
-            R_origin[i][j] = R[i][j];
-            G_origin[i][j] = G[i][j];
-            B_origin[i][j] = B[i][j];
+            R_origin[i][j] = (int)R[i][j];
+            G_origin[i][j] = (int)G[i][j];
+            B_origin[i][j] = (int)B[i][j];
         }
     }
 }
@@ -119,9 +119,34 @@ int My_Image::Adaptive_Median_Filtering()
     return 0;
 }
 
-int My_Image::Perspective_Transformation()
+void My_Image::Perspective_Transformation()
 {
-    return 0;
+    // 分配輸出圖片的記憶體
+    delete_output_mem();
+    width_output = width_origin;
+    height_output = height_origin;
+    new_output_mem();
+
+    int x, y;
+    for (int i = 0; i < width_output; i++)
+    {
+        for (int j = 0; j < height_output; j++)
+        {
+            find_PT_xy(i, j, x, y);
+            if (0 <= x && x < width_origin && 0 <= y && y < height_origin)
+            {
+                R_output[i][j] = R_origin[x][y];
+                G_output[i][j] = G_origin[x][y];
+                B_output[i][j] = B_origin[x][y];
+            }
+            else
+            {
+                R_output[i][j] = 0;
+                G_output[i][j] = 0;
+                B_output[i][j] = 0;
+            }
+        }
+    }
 }
 
 int My_Image::new_output_mem()
@@ -141,6 +166,7 @@ int My_Image::new_output_mem()
         G_output[i] = new int[height_output];
         B_output[i] = new int[height_output];
     }
+    
     return 0;
 }
 
@@ -354,6 +380,25 @@ int My_Image::find_AMF_output(int x, int y, int output[3])
     }
 
     return 0;
+}
+
+void My_Image::find_PT_xy(int u, int v, int& x, int& y)
+{
+    // 建立 Homography Matrix
+    double a = 0.6158, b = 0.3301, c = 0, d = -0.0333, e = 0.8827, f = 30.0000, g = -0.0007, h = 0.0006;
+    double hm[3][3] =
+    {
+        {a - g * u, d - g * v, 0},
+        {b - h * u, e - h * v, 0},
+        {c, f, 1}
+    };
+    mat H(&hm[0][0], 3, 3);
+    mat output_xy({ (double)u, (double)v, 1 });
+
+    // 求對映原圖的座標
+    mat original_xy = H.i() * output_xy.t();
+    x = (int)original_xy(0);
+    y = (int)original_xy(1);
 }
 
 #endif /* MY_IMAGE_CPP */
