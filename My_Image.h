@@ -25,6 +25,9 @@ public:
     int width_output{}, height_output{};
 
     template <typename type, size_t x_size, size_t y_size>
+    void change_image(type(&R)[x_size][y_size], type(&G)[x_size][y_size], type(&B)[x_size][y_size], int w, int h);
+
+    template <typename type, size_t x_size, size_t y_size>
     void To_array(type(&R)[x_size][y_size], type(&G)[x_size][y_size], type(&B)[x_size][y_size]);
 
     int Median_Filtering(int window_size);
@@ -34,6 +37,7 @@ public:
     void Perspective_Transformation();
 
 private:
+    int delete_origin_mem();
     int new_output_mem();
     int delete_output_mem();
     int find_median(int x, int y, int window_size, int median[3]);

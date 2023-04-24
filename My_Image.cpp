@@ -48,6 +48,38 @@ My_Image::~My_Image()
     delete_output_mem();
 }
 
+template<typename type, size_t x_size, size_t y_size>
+void My_Image::change_image(type(&R)[x_size][y_size], type(&G)[x_size][y_size], type(&B)[x_size][y_size], int w, int h)
+{
+    delete_origin_mem();
+
+    // 儲存 width height
+    width_origin = w;
+    height_origin = h;
+
+    // 分配記憶體給 R G B
+    R_origin = new int* [width_origin];
+    G_origin = new int* [width_origin];
+    B_origin = new int* [width_origin];
+    for (int i = 0; i < width_origin; i++)
+    {
+        R_origin[i] = new int[height_origin];
+        G_origin[i] = new int[height_origin];
+        B_origin[i] = new int[height_origin];
+    }
+
+    // 儲存傳入的圖片
+    for (int i = 0; i < width_origin; i++)
+    {
+        for (int j = 0; j < height_origin; j++)
+        {
+            R_origin[i][j] = (int)R[i][j];
+            G_origin[i][j] = (int)G[i][j];
+            B_origin[i][j] = (int)B[i][j];
+        }
+    }
+}
+
 template <typename type, size_t x_size, size_t y_size>
 void My_Image::To_array(type(&R)[x_size][y_size], type(&G)[x_size][y_size], type(&B)[x_size][y_size])
 {
@@ -147,6 +179,30 @@ void My_Image::Perspective_Transformation()
             }
         }
     }
+}
+
+int My_Image::delete_origin_mem()
+{
+    // 釋放 R G B 的記憶體
+    if (R_origin == NULL || G_origin == NULL || B_origin == NULL)
+    {
+        //cout << "delete_origin_mem: origin pointer is NULL." << endl;
+        return 1;
+    }
+    for (int i = 0; i < width_origin; i++)
+    {
+        delete[] R_origin[i];
+        delete[] G_origin[i];
+        delete[] B_origin[i];
+    }
+    delete[] R_origin;
+    delete[] G_origin;
+    delete[] B_origin;
+    R_origin = NULL;
+    G_origin = NULL;
+    B_origin = NULL;
+
+    return 0;
 }
 
 int My_Image::new_output_mem()
