@@ -200,130 +200,28 @@ int My_Image::Canny(int Gaussian_kernel_size, double sigma, int tH, int tL)
     color_to_gray(Gray);
 
     // Gaussian Filtering
-    vector<vector<double>> Gaussian_kernel(Gaussian_kernel_size, vector<double>(Gaussian_kernel_size, 0));
-    make_GF_kernel(Gaussian_kernel, Gaussian_kernel_size, sigma);
     vector<vector<double>> GF_result(width_origin, vector<double>(height_origin, 0));
-    window_filtering(Gaussian_kernel, Gray, GF_result);
+    Gaussian_Filtering(Gaussian_kernel_size, sigma, Gray, GF_result);
 
     // Sobel
-    vector<vector<double>> Sobel_x(3, vector<double>(3, 0));
-    vector<vector<double>> Sobel_y(3, vector<double>(3, 0));
-    Sobel_x[0][0] = -1; Sobel_x[0][1] = 0; Sobel_x[0][2] = 1;
-    Sobel_x[1][0] = -2; Sobel_x[1][1] = 0; Sobel_x[1][2] = 2;
-    Sobel_x[2][0] = -1; Sobel_x[2][1] = 0; Sobel_x[2][2] = 1;
-    Sobel_y[0][0] = -1; Sobel_y[0][1] = -2; Sobel_y[0][2] = -1;
-    Sobel_y[1][0] =  0; Sobel_y[1][1] =  0; Sobel_y[1][2] =  0;
-    Sobel_y[2][0] =  1; Sobel_y[2][1] =  2; Sobel_y[2][2] =  1;
     vector<vector<double>> gradient(width_origin, vector<double>(height_origin, 0));
     vector<vector<int>> direction(width_origin, vector<int>(height_origin, 0));
-    for (int i = 1; i < width_origin - 1; i++)
-    {
-        for (int j = 1; j < height_origin - 1; j++)
-        {
-            double Gx{}, Gy{}, G, angle;
-            find_WF(Sobel_x, GF_result, i, j, Gx);
-            find_WF(Sobel_y, GF_result, i, j, Gy);
-            G = sqrt(Gx * Gx + Gy * Gy);
-            // if Gx == 0
-            if (abs(Gx) <= 1e-15)
-                angle = 90;
-            else
-                angle = atan(Gy / Gx) * 180 / 3.14159265;
-            angle = angle < 0 ? angle + 180 : angle;
-
-            gradient[i][j] = G;
-            if ((0 <= angle && angle < 22.5) || (157.5 <= angle))
-                direction[i][j] = 0;
-            else if (22.5 <= angle && angle < 67.5)
-                direction[i][j] = 1;
-            else if (67.5 <= angle && angle < 112.5)
-                direction[i][j] = 2;
-            else if (112.5 <= angle && angle < 157.5)
-                direction[i][j] = 3;
-        }
-    }
+    Sobel(GF_result, gradient, direction);
 
     // Non-maximum suppression
-    for (int i = 1; i < width_origin - 1; i++)
-    {
-        for (int j = 1; j < height_origin - 1; j++)
-        {
-            switch (direction[i][j])
-            {
-            case 0:
-                if (gradient[i][j] < gradient[i][j - 1] || gradient[i][j] < gradient[i][j + 1])
-                    gradient[i][j] = 0;
-                break;
-
-            case 1:
-                if (gradient[i][j] < gradient[i - 1][j - 1] || gradient[i][j] < gradient[i + 1][j + 1])
-                    gradient[i][j] = 0;
-                break;
-
-            case 2:
-                if (gradient[i][j] < gradient[i - 1][j] || gradient[i][j] < gradient[i + 1][j])
-                    gradient[i][j] = 0;
-                break;
-
-            case 3:
-                if (gradient[i][j] < gradient[i - 1][j + 1] || gradient[i][j] < gradient[i + 1][j - 1])
-                    gradient[i][j] = 0;
-                break;
-            }
-        }
-    }
+    vector<vector<double>> suppression(width_origin, vector<double>(height_origin, 0));
+    Non_maximum_suppression(3, gradient, direction, suppression);
 
     // Double Threshold
-    vector<vector<int>> output(width_origin, vector<int>(height_origin, 0));
-    for (int i = 1; i < width_origin - 1; i++)
-    {
-        for (int j = 1; j < height_origin - 1; j++)
-        {
-            if (gradient[i][j] < tL)
-            {
-                output[i][j] = 0;
-            }
-            else if (tL < gradient[i][j] && gradient[i][j] < tH)
-            {
-                output[i][j] = 1;
-            }
-            else
-            {
-                output[i][j] = 2;
-            }
-        }
-    }
-    for (int scan = 0; scan < 1; scan++)
-    {
-        for (int i = 1; i < width_origin - 1; i++)
-        {
-            for (int j = 1; j < height_origin - 1; j++)
-            {
-                if (output[i][j] == 1)
-                {
-                    for (int dx = -1; dx <= 1; dx++)
-                        for (int dy = -1; dy <= 1; dy++)
-                            if (output[i + dx][j + dy] == 2)
-                            {
-                                output[i][j] = 2;
-                                dx = 2;
-                                dy = 2;
-                            }
-
-                }
-            }
-        }
-    }
-
+    vector<vector<int>> binarization(width_origin, vector<int>(height_origin, 0));
+    Double_Threshold(1, tL, tH, suppression, binarization);
+    
     // output
     for (int i = 0; i < width_origin; i++)
     {
         for (int j = 0; j < height_origin; j++)
         {
-            if (output[i][j] == 2)
-                R_output[i][j] = G_output[i][j] = B_output[i][j] = 255;
-            else
-                R_output[i][j] = G_output[i][j] = B_output[i][j] = 0;
+            R_output[i][j] = G_output[i][j] = B_output[i][j] = binarization[i][j];
         }
     }
 
@@ -423,9 +321,9 @@ int My_Image::find_median(int x, int y, int window_size, int median[3])
             }
             else
             {
-                mask_R[i * window_size + j] = 255;
-                mask_G[i * window_size + j] = 255;
-                mask_B[i * window_size + j] = 255;
+                mask_R[i * window_size + j] = R_origin[x][y];
+                mask_G[i * window_size + j] = G_origin[x][y];
+                mask_B[i * window_size + j] = B_origin[x][y];
             }
         }
     }
@@ -463,9 +361,9 @@ int My_Image::find_median(int x, int y, int window_size, int median[3], int max[
             }
             else
             {
-                mask_R[i * window_size + j] = 255;
-                mask_G[i * window_size + j] = 255;
-                mask_B[i * window_size + j] = 255;
+                mask_R[i * window_size + j] = R_origin[x][y];
+                mask_G[i * window_size + j] = G_origin[x][y];
+                mask_B[i * window_size + j] = B_origin[x][y];
             }
         }
     }
@@ -521,7 +419,23 @@ int My_Image::find_median_one_channel(int x, int y, int window_size, int channel
             }
             else
             {
-                mask[i * window_size + j] = 255;
+                switch (channel)
+                {
+                // R channel
+                case 0:
+                    mask[i * window_size + j] = R_origin[x][y];
+                    break;
+
+                // G channel
+                case 1:
+                    mask[i * window_size + j] = G_origin[x][y];
+                    break;
+
+                // B channel
+                case 2:
+                    mask[i * window_size + j] = B_origin[x][y];
+                    break;
+                }
             }
         }
     }
@@ -638,6 +552,154 @@ void My_Image::make_GF_kernel(vector<vector<double>>& Gaussian_kernel, int Gauss
     }
 }
 
+int My_Image::Gaussian_Filtering(int Gaussian_kernel_size, double sigma, vector<vector<double>>& input, vector<vector<double>>& result)
+{
+    if (Gaussian_kernel_size % 2 == 0)
+    {
+        cout << "Gaussian_Filtering: Gaussian_kernel_size must be an odd integer." << endl;
+        return 1;
+    }
+    vector<vector<double>> Gaussian_kernel(Gaussian_kernel_size, vector<double>(Gaussian_kernel_size, 0));
+    make_GF_kernel(Gaussian_kernel, Gaussian_kernel_size, sigma);
+    window_filtering(Gaussian_kernel, input, result);
+
+    return 0;
+}
+
+void My_Image::Sobel(vector<vector<double>>& input, vector<vector<double>>& gradient, vector<vector<int>>& direction)
+{
+    vector<vector<double>> Sobel_x(3, vector<double>(3, 0));
+    vector<vector<double>> Sobel_y(3, vector<double>(3, 0));
+    Sobel_x[0][0] = -1; Sobel_x[0][1] = 0; Sobel_x[0][2] = 1;
+    Sobel_x[1][0] = -2; Sobel_x[1][1] = 0; Sobel_x[1][2] = 2;
+    Sobel_x[2][0] = -1; Sobel_x[2][1] = 0; Sobel_x[2][2] = 1;
+    Sobel_y[0][0] = -1; Sobel_y[0][1] = -2; Sobel_y[0][2] = -1;
+    Sobel_y[1][0] = 0; Sobel_y[1][1] = 0; Sobel_y[1][2] = 0;
+    Sobel_y[2][0] = 1; Sobel_y[2][1] = 2; Sobel_y[2][2] = 1;
+    int width = (int)input.size();
+    int height = (int)input[0].size();
+    for (int i = 1; i < width - 1; i++)
+    {
+        for (int j = 1; j < height - 1; j++)
+        {
+            double Gx{}, Gy{}, G, angle;
+            find_WF(Sobel_x, input, i, j, Gx);
+            find_WF(Sobel_y, input, i, j, Gy);
+            G = sqrt(Gx * Gx + Gy * Gy);
+            // if Gx == 0
+            if (abs(Gx) <= 1e-15)
+                angle = 90;
+            else
+                angle = atan(Gy / Gx) * 180 / 3.14159265;
+            angle = angle < 0 ? angle + 180 : angle;
+
+            gradient[i][j] = G;
+            if ((0 <= angle && angle < 22.5) || (157.5 <= angle))
+                direction[i][j] = 0;
+            else if (22.5 <= angle && angle < 67.5)
+                direction[i][j] = 1;
+            else if (67.5 <= angle && angle < 112.5)
+                direction[i][j] = 2;
+            else if (112.5 <= angle && angle < 157.5)
+                direction[i][j] = 3;
+        }
+    }
+}
+
+void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& gradient, vector<vector<int>>& direction, vector<vector<double>>& result)
+{
+    int width = (int)gradient.size();
+    int height = (int)gradient[0].size();
+    for (int i = 0; i < width; i++)
+    {
+        result[i].assign(gradient[i].begin(), gradient[i].end());
+    }
+
+    for (int i = 1; i < width - 1; i++)
+    {
+        for (int j = 1; j < height - 1; j++)
+        {
+            switch (direction[i][j])
+            {
+            case 0:
+                if (result[i][j] < result[i][j - 1] || result[i][j] < result[i][j + 1])
+                    result[i][j] = 0;
+                break;
+
+            case 1:
+                if (result[i][j] < result[i - 1][j - 1] || result[i][j] < result[i + 1][j + 1])
+                    result[i][j] = 0;
+                break;
+
+            case 2:
+                if (result[i][j] < result[i - 1][j] || result[i][j] < result[i + 1][j])
+                    result[i][j] = 0;
+                break;
+
+            case 3:
+                if (result[i][j] < result[i - 1][j + 1] || result[i][j] < result[i + 1][j - 1])
+                    result[i][j] = 0;
+                break;
+            }
+        }
+    }
+}
+
+void My_Image::Double_Threshold(int scan_times, int tL, int tH, vector<vector<double>>& input, vector<vector<int>>& result)
+{
+    int width = (int)input.size();
+    int height = (int)input[0].size();
+    for (int i = 1; i < width - 1; i++)
+    {
+        for (int j = 1; j < height - 1; j++)
+        {
+            if (input[i][j] < tL)
+            {
+                result[i][j] = 0;
+            }
+            else if (tL < input[i][j] && input[i][j] < tH)
+            {
+                result[i][j] = 1;
+            }
+            else
+            {
+                result[i][j] = 2;
+            }
+        }
+    }
+    for (int scan = 0; scan < scan_times; scan++)
+    {
+        for (int i = 1; i < width - 1; i++)
+        {
+            for (int j = 1; j < height - 1; j++)
+            {
+                if (result[i][j] == 1)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                        for (int dy = -1; dy <= 1; dy++)
+                            if (result[i + dx][j + dy] == 2)
+                            {
+                                result[i][j] = 2;
+                                dx = 2;
+                                dy = 2;
+                            }
+
+                }
+            }
+        }
+    }
+    for (int i = 0; i < width; i++)
+    {
+        for (int j = 0; j < height; j++)
+        {
+            if (result[i][j] == 2)
+                result[i][j] = 255;
+            else
+                result[i][j] = 0;
+        }
+    }
+}
+
 void My_Image::window_filtering(vector<vector<double>>& window, vector<vector<double>>& input, vector<vector<double>>& result)
 {
     int width = (int)result.size();
@@ -688,9 +750,9 @@ void My_Image::find_WF(vector<vector<double>>& window, int x, int y, double valu
             }
             else
             {
-                value[0] += window[i][j] * 0;
-                value[1] += window[i][j] * 0;
-                value[2] += window[i][j] * 0;
+                value[0] += window[i][j] * R_origin[x][y];
+                value[1] += window[i][j] * G_origin[x][y];
+                value[2] += window[i][j] * B_origin[x][y];
             }
         }
     }
@@ -714,9 +776,7 @@ void My_Image::find_WF(vector<vector<double>>& window, vector<vector<double>>& i
             }
             else
             {
-                value = input[x][y];
-                i = window_size;
-                j = window_size;
+                value += window[i][j] * input[x][y];
             }
         }
     }
@@ -742,9 +802,9 @@ void My_Image::find_WF(vector<vector<double>>& window, vector<vector<vector<doub
             }
             else
             {
-                value[0] += window[i][j] * 0;
-                value[1] += window[i][j] * 0;
-                value[2] += window[i][j] * 0;
+                value[0] += window[i][j] * input[0][x][y];
+                value[1] += window[i][j] * input[1][x][y];
+                value[2] += window[i][j] * input[2][x][y];
             }
         }
     }

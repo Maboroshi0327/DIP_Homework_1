@@ -50,6 +50,10 @@ private:
     void find_PT_xy(int u, int v, int& x, int& y);
     void color_to_gray(vector<vector<double>>& input);
     void make_GF_kernel(vector<vector<double>>& Gaussian_kernel, int Gaussian_kernel_size, double sigma);
+    int Gaussian_Filtering(int Gaussian_kernel_size, double sigma, vector<vector<double>>& input, vector<vector<double>>& result);
+    void Sobel(vector<vector<double>>& input, vector<vector<double>>& gradient, vector<vector<int>>& direction);
+    void Non_maximum_suppression(int kernel_size, vector<vector<double>>& gradient, vector<vector<int>>& direction, vector<vector<double>>& result);
+    void Double_Threshold(int scan_times, int tL, int tH, vector<vector<double>>& input, vector<vector<int>>& result);
 
     // (1 channel)  input: 2d vector, output: 2d vector
     void window_filtering(vector<vector<double>>& window, vector<vector<double>>& input, vector<vector<double>>& result);
