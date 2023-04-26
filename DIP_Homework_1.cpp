@@ -44,7 +44,7 @@ int main()
     open_bmp((char*)"test images\\lighthouse.bmp", R, G, B, width, height);
 
     image.change_image(R, G, B, width, height);
-    image.Canny(5, 1, 100, 50);
+    image.Canny(5, 1, 80, 10);
     image.To_array(r, g, b);
 
     save_bmp((char*)"test images\\Problem_3.bmp", r, g, b);

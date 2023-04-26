@@ -210,11 +210,11 @@ int My_Image::Canny(int Gaussian_kernel_size, double sigma, int tH, int tL)
 
     // Non-maximum suppression
     vector<vector<double>> suppression(width_origin, vector<double>(height_origin, 0));
-    Non_maximum_suppression(5, gradient, direction, suppression);
+    Non_maximum_suppression(7, gradient, direction, suppression);
 
     // Double Threshold
     vector<vector<int>> binarization(width_origin, vector<int>(height_origin, 0));
-    Double_Threshold(1, tL, tH, suppression, binarization);
+    Double_Threshold(2, tL, tH, suppression, binarization);
     
     //Direction_visualization(gradient, direction);
     
@@ -612,8 +612,6 @@ void My_Image::Sobel(vector<vector<double>>& input, vector<vector<double>>& grad
 
 void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& gradient, vector<vector<int>>& direction, vector<vector<double>>& result)
 {
-    int half_kernel_size = kernel_size / 2;
-
     int width = (int)gradient.size();
     int height = (int)gradient[0].size();
     for (int i = 0; i < width; i++)
@@ -621,6 +619,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
         result[i].assign(gradient[i].begin(), gradient[i].end());
     }
 
+    int half_kernel_size = kernel_size / 2;
     for (int i = 0; i < width; i++)
     {
         for (int j = 0; j < height; j++)
@@ -628,7 +627,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
             switch (direction[i][j])
             {
             case 0:
-                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                for (int k = -half_kernel_size; k <= half_kernel_size; k++)
                 {
                     if (0 <= i + k && i + k < width)
                     {
@@ -642,7 +641,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
                 break;
 
             case 1:
-                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                for (int k = -half_kernel_size; k <= half_kernel_size; k++)
                 {
                     if (0 <= i + k && i + k < width && 0 <= j + k && j + k < height)
                     {
@@ -656,7 +655,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
                 break;
 
             case 2:
-                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                for (int k = -half_kernel_size; k <= half_kernel_size; k++)
                 {
                     if (0 <= j + k && j + k < height)
                     {
@@ -670,7 +669,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
                 break;
 
             case 3:
-                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                for (int k = -half_kernel_size; k <= half_kernel_size; k++)
                 {
                     if (0 <= i + k && i + k < width && 0 <= j - k && j - k < height)
                     {
