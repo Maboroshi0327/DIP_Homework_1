@@ -210,7 +210,7 @@ int My_Image::Canny(int Gaussian_kernel_size, double sigma, int tH, int tL)
 
     // Non-maximum suppression
     vector<vector<double>> suppression(width_origin, vector<double>(height_origin, 0));
-    Non_maximum_suppression(3, gradient, direction, suppression);
+    Non_maximum_suppression(5, gradient, direction, suppression);
 
     // Double Threshold
     vector<vector<int>> binarization(width_origin, vector<int>(height_origin, 0));
@@ -570,6 +570,11 @@ int My_Image::Gaussian_Filtering(int Gaussian_kernel_size, double sigma, vector<
 
 void My_Image::Sobel(vector<vector<double>>& input, vector<vector<double>>& gradient, vector<vector<int>>& direction)
 {
+    // All gradient = 0
+    for (auto& i : gradient)
+        for (auto& j : i)
+            j = 0;
+
     vector<vector<double>> Sobel_x(3, vector<double>(3, 0));
     vector<vector<double>> Sobel_y(3, vector<double>(3, 0));
     Sobel_x[0][2] = -1; Sobel_x[1][2] = 0; Sobel_x[2][2] = 1;
@@ -607,6 +612,8 @@ void My_Image::Sobel(vector<vector<double>>& input, vector<vector<double>>& grad
 
 void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& gradient, vector<vector<int>>& direction, vector<vector<double>>& result)
 {
+    int half_kernel_size = kernel_size / 2;
+
     int width = (int)gradient.size();
     int height = (int)gradient[0].size();
     for (int i = 0; i < width; i++)
@@ -614,30 +621,66 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
         result[i].assign(gradient[i].begin(), gradient[i].end());
     }
 
-    for (int i = 1; i < width - 1; i++)
+    for (int i = 0; i < width; i++)
     {
-        for (int j = 1; j < height - 1; j++)
+        for (int j = 0; j < height; j++)
         {
             switch (direction[i][j])
             {
             case 0:
-                if (result[i][j] < result[i - 1][j] || result[i][j] < result[i + 1][j])
-                    result[i][j] = 0;
+                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                {
+                    if (0 <= i + k && i + k < width)
+                    {
+                        if (k != 0 && result[i][j] < result[i + k][j])
+                        {
+                            result[i][j] = 0;
+                            break;
+                        }
+                    }
+                }
                 break;
 
             case 1:
-                if (result[i][j] < result[i - 1][j - 1] || result[i][j] < result[i + 1][j + 1])
-                    result[i][j] = 0;
+                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                {
+                    if (0 <= i + k && i + k < width && 0 <= j + k && j + k < height)
+                    {
+                        if (k != 0 && result[i][j] < result[i + k][j + k])
+                        {
+                            result[i][j] = 0;
+                            break;
+                        }
+                    }
+                }
                 break;
 
             case 2:
-                if (result[i][j] < result[i][j - 1] || result[i][j] < result[i][j + 1])
-                    result[i][j] = 0;
+                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                {
+                    if (0 <= j + k && j + k < height)
+                    {
+                        if (k != 0 && result[i][j] < result[i][j + k])
+                        {
+                            result[i][j] = 0;
+                            break;
+                        }
+                    }
+                }
                 break;
 
             case 3:
-                if (result[i][j] < result[i - 1][j + 1] || result[i][j] < result[i + 1][j - 1])
-                    result[i][j] = 0;
+                for (int k = -half_kernel_size; k < half_kernel_size; k++)
+                {
+                    if (0 <= i + k && i + k < width && 0 <= j - k && j - k < height)
+                    {
+                        if (k != 0 && result[i][j] < result[i + k][j - k])
+                        {
+                            result[i][j] = 0;
+                            break;
+                        }
+                    }
+                }
                 break;
             }
         }
