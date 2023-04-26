@@ -216,6 +216,8 @@ int My_Image::Canny(int Gaussian_kernel_size, double sigma, int tH, int tL)
     vector<vector<int>> binarization(width_origin, vector<int>(height_origin, 0));
     Double_Threshold(1, tL, tH, suppression, binarization);
     
+    //Direction_visualization(gradient, direction);
+    
     // output
     for (int i = 0; i < width_origin; i++)
     {
@@ -570,12 +572,13 @@ void My_Image::Sobel(vector<vector<double>>& input, vector<vector<double>>& grad
 {
     vector<vector<double>> Sobel_x(3, vector<double>(3, 0));
     vector<vector<double>> Sobel_y(3, vector<double>(3, 0));
-    Sobel_x[0][0] = -1; Sobel_x[0][1] = 0; Sobel_x[0][2] = 1;
-    Sobel_x[1][0] = -2; Sobel_x[1][1] = 0; Sobel_x[1][2] = 2;
-    Sobel_x[2][0] = -1; Sobel_x[2][1] = 0; Sobel_x[2][2] = 1;
-    Sobel_y[0][0] = -1; Sobel_y[0][1] = -2; Sobel_y[0][2] = -1;
-    Sobel_y[1][0] = 0; Sobel_y[1][1] = 0; Sobel_y[1][2] = 0;
-    Sobel_y[2][0] = 1; Sobel_y[2][1] = 2; Sobel_y[2][2] = 1;
+    Sobel_x[0][2] = -1; Sobel_x[1][2] = 0; Sobel_x[2][2] = 1;
+    Sobel_x[0][1] = -2; Sobel_x[1][1] = 0; Sobel_x[2][1] = 2;
+    Sobel_x[0][0] = -1; Sobel_x[1][0] = 0; Sobel_x[2][0] = 1;
+    Sobel_y[0][2] =  1; Sobel_y[1][2] =  2; Sobel_y[2][2] =  1;
+    Sobel_y[0][1] =  0; Sobel_y[1][1] =  0; Sobel_y[2][1] =  0;
+    Sobel_y[0][0] = -1; Sobel_y[1][0] = -2; Sobel_y[2][0] = -1;
+
     int width = (int)input.size();
     int height = (int)input[0].size();
     for (int i = 1; i < width - 1; i++)
@@ -586,11 +589,7 @@ void My_Image::Sobel(vector<vector<double>>& input, vector<vector<double>>& grad
             find_WF(Sobel_x, input, i, j, Gx);
             find_WF(Sobel_y, input, i, j, Gy);
             G = sqrt(Gx * Gx + Gy * Gy);
-            // if Gx == 0
-            if (abs(Gx) <= 1e-15)
-                angle = 90;
-            else
-                angle = atan(Gy / Gx) * 180 / 3.14159265;
+            angle = atan(Gy / Gx) * 180 / 3.14159265;
             angle = angle < 0 ? angle + 180 : angle;
 
             gradient[i][j] = G;
@@ -622,7 +621,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
             switch (direction[i][j])
             {
             case 0:
-                if (result[i][j] < result[i][j - 1] || result[i][j] < result[i][j + 1])
+                if (result[i][j] < result[i - 1][j] || result[i][j] < result[i + 1][j])
                     result[i][j] = 0;
                 break;
 
@@ -632,7 +631,7 @@ void My_Image::Non_maximum_suppression(int kernel_size, vector<vector<double>>& 
                 break;
 
             case 2:
-                if (result[i][j] < result[i - 1][j] || result[i][j] < result[i + 1][j])
+                if (result[i][j] < result[i][j - 1] || result[i][j] < result[i][j + 1])
                     result[i][j] = 0;
                 break;
 
@@ -696,6 +695,49 @@ void My_Image::Double_Threshold(int scan_times, int tL, int tH, vector<vector<do
                 result[i][j] = 255;
             else
                 result[i][j] = 0;
+        }
+    }
+}
+
+void My_Image::Direction_visualization(vector<vector<double>>& gradient, vector<vector<int>>& direction)
+{
+    for (int i = 0; i < width_output; i++)
+    {
+        for (int j = 0; j < height_output; j++)
+        {
+            if (gradient[i][j] > 50)
+            {
+                if (direction[i][j] == 0)
+                {
+                    R_output[i][j] = 255;
+                    G_output[i][j] = 0;
+                    B_output[i][j] = 0;
+                }
+                else if (direction[i][j] == 1)
+                {
+                    R_output[i][j] = 0;
+                    G_output[i][j] = 255;
+                    B_output[i][j] = 0;
+                }
+                else if (direction[i][j] == 2)
+                {
+                    R_output[i][j] = 0;
+                    G_output[i][j] = 0;
+                    B_output[i][j] = 255;
+                }
+                else if (direction[i][j] == 3)
+                {
+                    R_output[i][j] = 255;
+                    G_output[i][j] = 255;
+                    B_output[i][j] = 0;
+                }
+            }
+            else
+            {
+                R_output[i][j] = 0;
+                G_output[i][j] = 0;
+                B_output[i][j] = 0;
+            }
         }
     }
 }

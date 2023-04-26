@@ -54,6 +54,7 @@ private:
     void Sobel(vector<vector<double>>& input, vector<vector<double>>& gradient, vector<vector<int>>& direction);
     void Non_maximum_suppression(int kernel_size, vector<vector<double>>& gradient, vector<vector<int>>& direction, vector<vector<double>>& result);
     void Double_Threshold(int scan_times, int tL, int tH, vector<vector<double>>& input, vector<vector<int>>& result);
+    void Direction_visualization(vector<vector<double>>& gradient, vector<vector<int>>& direction);
 
     // (1 channel)  input: 2d vector, output: 2d vector
     void window_filtering(vector<vector<double>>& window, vector<vector<double>>& input, vector<vector<double>>& result);
